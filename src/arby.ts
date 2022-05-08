@@ -147,7 +147,7 @@ async function buyUsdl(notification : NeoNotification) {
   // The estimated max buy quantity is the equivalent value of USDL
   // of our LRB balance with the slippage tolerance
   const estMaxBuyQuantity = Math.round(
-    (lrbBalance * lrbPriceInFlm) / (usdlPriceInFlm * (1 + (100 * SLIPPAGE_TOLERANCE))),
+    (lrbBalance * lrbPriceInFlm) / (usdlPriceInFlm * (1 + (SLIPPAGE_TOLERANCE / 10000))),
   );
 
   const desiredUsdlBuyQuantity = Math.round(perfectUsdlBuyQuantity * SWAP_RATIO);
@@ -155,7 +155,7 @@ async function buyUsdl(notification : NeoNotification) {
 
   // The max in quantity is the fair value with a tolerance
   const maxInQuantity = Math.round(
-    (usdlBuyQuantity * usdlPriceInFlm * (1 + (100 * SLIPPAGE_TOLERANCE))) / lrbPriceInFlm,
+    (usdlBuyQuantity * usdlPriceInFlm * (1 + (SLIPPAGE_TOLERANCE / 10000))) / lrbPriceInFlm,
   );
 
   logger.debug(`Computed buyUsdl: usdlBuyQuantity=${usdlBuyQuantity} `
@@ -218,7 +218,7 @@ async function sellUsdl(notification : NeoNotification) {
 
   // The min out quantity is the fair value with a tolerance
   const minOutQuantity = Math.round(
-    (usdlSellQuantity * usdlPriceInFlm) / (lrbPriceInFlm * (1 + (100 * SLIPPAGE_TOLERANCE))),
+    (usdlSellQuantity * usdlPriceInFlm) / (lrbPriceInFlm * (1 + (SLIPPAGE_TOLERANCE / 10000))),
   );
 
   logger.debug(`Computed sellUsdl: usdlSellQuantity=${usdlSellQuantity} `
