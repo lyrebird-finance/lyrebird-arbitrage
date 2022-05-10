@@ -23,7 +23,7 @@ const MAX_SPREAD = properties.maxSpread;
 // SLIPPAGE_TOLERANCE is expressed in basis points
 const SLIPPAGE_TOLERANCE = properties.slippageTolerance;
 const SLEEP_MILLIS = properties.sleepMillis;
-const AVIARY_WAIT_MILLIS = properties.aviaryWaitMillis;
+const VERIFY_WAIT_MILLIS = properties.verifyWaitMillis;
 
 /**
  * Wait for a notification due to the desired Flamingo swap
@@ -39,6 +39,11 @@ async function completeFlamingoSwap(contractHash: string, notification: NeoNotif
   const swapPromise = new Promise<string>((resolve, _) => {
     swapResolve = resolve;
   });
+  const swapFailedT = setTimeout(() => {
+    logger.info(`Flamingo swap wasn't received after ${VERIFY_WAIT_MILLIS} milliseconds.`);
+    swapResolve(false);
+  }, VERIFY_WAIT_MILLIS);
+
   async function completeFlamingoSwapCallback(
     callbackData: RawData,
     isBinary: boolean,
@@ -49,6 +54,7 @@ async function completeFlamingoSwap(contractHash: string, notification: NeoNotif
       const txid = data.params[0].container;
       const recipientHash = data.params[0].state.value[1].value;
       if (DapiUtils.base64MatchesAddress(recipientHash, OWNER.address)) {
+        clearTimeout(swapFailedT);
         swapResolve(txid);
         notification.offCallback(completeFlamingoSwapCallback);
         logger.info(`Flamingo swap ${txid} successful`);
@@ -62,7 +68,7 @@ async function completeFlamingoSwap(contractHash: string, notification: NeoNotif
 /**
  * Wait for a notification due to the desired Aviary swap
  * If the Oracle transaction has not been verified before
- * {@link AVIARY_WAIT_MILLIS} has elapsed, resolve the promise.
+ * {@link VERIFY_WAIT_MILLIS} has elapsed, resolve the promise.
  *
  * @param contractHash the hash of the token to be received
  * @param notification a WebSocket notification handler
@@ -76,9 +82,9 @@ async function completeAviarySwap(notification: NeoNotification) {
     swapResolve = resolve;
   });
   const swapFailedT = setTimeout(() => {
-    logger.info(`Aviary swap wasn't received after ${AVIARY_WAIT_MILLIS} milliseconds.`);
+    logger.info(`Aviary swap wasn't received after ${VERIFY_WAIT_MILLIS} milliseconds.`);
     swapResolve(false);
-  }, AVIARY_WAIT_MILLIS);
+  }, VERIFY_WAIT_MILLIS);
 
   async function aviarySwapSuccess(
     callbackData: RawData,

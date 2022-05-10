@@ -13,12 +13,16 @@
   "flmUsdlScriptHash": "0xc7acb3e28cb4db52f216861160ff612894aab2b3",
   "priceUrl": "https://testnet.lyrebird.finance/api/prices",
   "targetPriceUrl": "https://testnet.lyrebird.finance/api/targetPrices",
+  "binanceFlmPrice": false,
+  "binanceRestUrl": "https://api.binance.com/api/v3/ticker/price?symbol=FLMUSDT",
+  "binanceWsUrl": "wss://stream.binance.com:9443/ws/flmusdt@aggTrade",
+  "stalePriceMillis": 60000,
   "pegThreshold": 0.01,
   "balanceThreshold": 0.40,
   "swapRatio": 0.95,
   "maxSpread": 500,
   "slippageTolerance": 500,
   "sleepMillis": 60000,
-  "aviaryWaitMillis": 60000,
+  "verifyWaitMillis": 60000,
   "dryRun": true
 }

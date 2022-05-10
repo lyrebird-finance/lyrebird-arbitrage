@@ -3,6 +3,7 @@ import { u } from '@cityofzion/neon-core';
 import { config } from '../config';
 import { logger } from './loggingUtils';
 import { DapiUtils } from './dapiUtils';
+import { BinancePriceSource, BinancePriceInit } from './binanceUtils';
 
 const properties = config.getProperties();
 
@@ -21,6 +22,9 @@ export const USDL_DECIMALS = 8;
 // Prices
 export const PRICE_URL: string = properties.priceUrl;
 export const TARGET_PRICE_URL: string = properties.targetPriceUrl;
+const BINANCE_FLM_PRICE: boolean = properties.binanceFlmPrice;
+
+let BINANCE_PRICE_SOURCE: BinancePriceSource;
 
 // These are true if the [token0, token1] ordering is reversed from the FLP name
 // and false if the ordering is the same
@@ -44,19 +48,25 @@ async function getFlmIndex(scriptHash: string) {
 }
 
 Promise.all([
+  BinancePriceInit(),
   getFlmIndex(DapiUtils.FLM_FUSDT_SCRIPT_HASH),
   getFlmIndex(DapiUtils.FLM_LRB_SCRIPT_HASH),
   getFlmIndex(DapiUtils.FLM_USDL_SCRIPT_HASH)]).then((ret) => {
-  const flmFusdtFlmIndex = ret[0];
-  const flmLrbFlmIndex = ret[1];
-  const flmUsdlFlmIndex = ret[2];
+  const binancePrice = ret[0];
+  const flmFusdtFlmIndex = ret[1];
+  const flmLrbFlmIndex = ret[2];
+  const flmUsdlFlmIndex = ret[3];
 
+  BINANCE_PRICE_SOURCE = binancePrice;
   FLM_FUSDT_REVERSED = flmFusdtFlmIndex === 1;
   FLM_LRB_REVERSED = flmLrbFlmIndex === 1;
   FLM_USDL_REVERSED = flmUsdlFlmIndex === 1;
   logger.debug(`Initialized FLM_FUSDT_REVERSED=${FLM_FUSDT_REVERSED}, `
                + `FLM_LRB_REVERSED=${FLM_LRB_REVERSED}, FLM_USDL_REVERSED=${FLM_USDL_REVERSED}`);
-  resolveInitComplete(true);
+
+  BINANCE_PRICE_SOURCE.available.then(() => {
+    resolveInitComplete(true);
+  });
 });
 
 export async function getLrbPriceInFlm() {
@@ -88,16 +98,29 @@ export async function getUsdlPriceInFlm() {
 }
 
 export async function getFlmPriceInFusdt() {
-  return DapiUtils.getPoolReserves(DapiUtils.FLM_FUSDT_SCRIPT_HASH).then((ret) => {
-    const flmFusdtReserves = ret;
-    const flmIndex = FLM_FUSDT_REVERSED ? 1 : 0;
-    const fusdtIndex = 1 - flmIndex;
+  const binancePrice = BINANCE_PRICE_SOURCE.getFlmPrice();
 
-    const flmReserves = parseInt(flmFusdtReserves[flmIndex].value as string, 10);
-    const fusdtReserves = parseInt(flmFusdtReserves[fusdtIndex].value as string, 10);
-    const flmInFusdt = (fusdtReserves / 10 ** FUSDT_DECIMALS) / (flmReserves / 10 ** FLM_DECIMALS);
+  if (binancePrice.isStale) {
+    // We should have prices from Binance
+    if (BINANCE_FLM_PRICE) {
+      logger.error('Falling back to Flamingo FLM price because Binance FLM price is stale...');
+    }
+    return DapiUtils.getPoolReserves(DapiUtils.FLM_FUSDT_SCRIPT_HASH).then((ret) => {
+      const flmFusdtReserves = ret;
+      const flmIndex = FLM_FUSDT_REVERSED ? 1 : 0;
+      const fusdtIndex = 1 - flmIndex;
 
-    return flmInFusdt;
+      const flmReserves = parseInt(flmFusdtReserves[flmIndex].value as string, 10);
+      const fusdtReserves = parseInt(flmFusdtReserves[fusdtIndex].value as string, 10);
+      const flmInFusdt = (fusdtReserves / 10 ** FUSDT_DECIMALS)
+      / (flmReserves / 10 ** FLM_DECIMALS);
+
+      return flmInFusdt;
+    });
+  }
+  // Not stale
+  return new Promise<number>((resolve) => {
+    resolve(binancePrice.price);
   });
 }
 

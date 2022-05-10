@@ -102,6 +102,30 @@ const config = convict({
     arg: 'targetPriceUrl',
     env: 'TARGET_PRICE_URL',
   },
+  binanceFlmPrice: {
+    format: Boolean,
+    default: false,
+    arg: 'binanceFlmPrice',
+    env: 'BINANCE_FLM_PRICE',
+  },
+  binanceRestUrl: {
+    format: String,
+    default: '',
+    arg: 'binanceRestUrl',
+    env: 'BINANCE_REST_URL',
+  },
+  binanceWsUrl: {
+    format: String,
+    default: '',
+    arg: 'binanceWsUrl',
+    env: 'BINANCE_WS_URL',
+  },
+  stalePriceMillis: {
+    format: Number,
+    default: 60000,
+    arg: 'stalePriceMillis',
+    env: 'STALE_PRICE_MILLIS',
+  },
   pegThreshold: {
     format: Number,
     default: 1.05,
@@ -138,11 +162,11 @@ const config = convict({
     arg: 'sleepMillis',
     env: 'SLEEP_MILLIS',
   },
-  aviaryWaitMillis: {
+  verifyWaitMillis: {
     format: Number,
     default: 60_000,
-    arg: 'aviaryWaitMillis',
-    env: 'AVIARY_WAIT_MILLIS',
+    arg: 'verifyWaitMillis',
+    env: 'VERIFY_WAIT_MILLIS',
   },
   dryRun: {
     format: Boolean,
