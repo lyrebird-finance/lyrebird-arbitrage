@@ -5,7 +5,7 @@ arby is the reference arbitrage bot for Lyrebird.
 
 arby is able to run at a profit because Lyrebird swaps LRB and USDL based on the `target price` of USDL (always $1.00), whereas Flamingo maintains the `real price` of USDL which can deviate from the target price. When these prices differ enough, arby can perform arbitrage by engaging in a swap trade on Flamingo at the `real price` and rebalancing later on Lyrebird at the `target price`.
 
-As of Mau 9, 2022, arby implements arbitrage of USDL between Flamingo and Lyrebird by looping through the following cycle:
+As of May 9, 2022, arby implements arbitrage of USDL between Flamingo and Lyrebird by looping through the following cycle:
 
 *  Fetch the current prevailing price of USDL on Flamingo, defined as `USDL/FLM * FLM/fUSDT`.
 *  If `$USDL > 1.0 + PEG_THRESHOLD`, sell USDL for LRB through the FlamingoSwapRouter contract.
@@ -33,6 +33,6 @@ As of Mau 9, 2022, arby implements arbitrage of USDL between Flamingo and Lyrebi
 | `SWAP_RATIO` | The percentage of the *perfect swap* (that brings the value of USDL exactly to the target price) that will be performed. A value of `0.75` indicates that arby will compute the perfect swap quantity of USDL and swap `75%` of this quantity. |
 | `MAX_SPREAD` | The max spread that can be incurred in a Lyrebird swap, expressed in basis points. `100` indicates that a swap on Lyrebird will abort if it loses more than `1%` of the fair value (at `target price`). |
 | `SLIPPAGE_TOLERANCE` | The max slippage that can be incurred in a Flamingo swap, also expressed in basis points. `100` indicates that a swap on Flamingo will abort if it loses more than `1%` of the fair value (at `real price`) due to a preceding trade in the same block. |
-| `SLEEP_MILLIS` | The cycle duration expressed in milliseconds. arby will wait this duration betwen each cycle. It is meaningless to set this duration to less than `15000`, as Flamingo prices can't change between blocks which are generated every 15 seconds. |
-| `AVIARY_WAIT_MILLIS` | The maximum amount of time to wait for an Aviary swap in milliseconds. If the Oracle hasn't responded by this time, arby will continue to the next cycle.. |
+| `SLEEP_MILLIS` | The cycle duration expressed in milliseconds. arby will wait this duration between each cycle. It is meaningless to set this duration to less than `15000`, as Flamingo prices can't change between blocks which are generated every 15 seconds. |
+| `AVIARY_WAIT_MILLIS` | The maximum amount of time to wait for an Aviary swap in milliseconds. If the Oracle hasn't responded by this time, arby will continue to the next cycle. |
 | `DRY_RUN` | If set to true, output the computations without actually performing swaps. Useful for testing and tuning parameters. |
