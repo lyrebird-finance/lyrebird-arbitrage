@@ -50,7 +50,7 @@ async function completeFlamingoSwap(contractHash: string, notification: NeoNotif
   ): Promise<void> {
     const message = isBinary ? callbackData : callbackData.toString();
     const data = JSON.parse(message as string);
-    if (data.params) {
+    if (Array.isArray(data.params) && data.params.length > 0) {
       const txid = data.params[0].container;
       const recipientHash = data.params[0].state.value[1].value;
       if (DapiUtils.base64MatchesAddress(recipientHash, OWNER.address)) {
@@ -92,7 +92,7 @@ async function completeAviarySwap(notification: NeoNotification) {
   ): Promise<void> {
     const message = isBinary ? callbackData : callbackData.toString();
     const data = JSON.parse(message as string);
-    if (data.params && data.params[0].eventname === 'Swap') {
+    if (Array.isArray(data.params) && data.params.length > 0 && data.params[0].eventname === 'Swap') {
       const txid = data.params[0].container;
       const accountHash = data.params[0].state.value[0].value;
 
@@ -110,7 +110,7 @@ async function completeAviarySwap(notification: NeoNotification) {
   ): Promise<void> {
     const message = isBinary ? callbackData : callbackData.toString();
     const data = JSON.parse(message as string);
-    if (data.params && data.params[0].eventname === 'SwapFailure') {
+    if (Array.isArray(data.params) && data.params.length > 0 && data.params[0].eventname === 'SwapFailure') {
       const txid = data.params[0].container;
       const event = data.params[0].eventname;
       const accountHash = data.params[0].state.value[0].value;
