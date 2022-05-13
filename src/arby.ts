@@ -137,49 +137,51 @@ async function completeAviarySwap(notification: NeoNotification) {
  * @param notification a WebSocket notification handler
  */
 async function buyUsdl(notification : NeoNotification) {
-  const perfectUsdlBuyQuantityP = ExchangeUtils.getUsdlBuyQuantity();
-  const lrbPriceInFlmP = ExchangeUtils.getLrbPriceInFlm();
-  const usdlPriceInFlmP = ExchangeUtils.getUsdlPriceInFlm();
-  const lrbBalanceP = DapiUtils.getBalance(DapiUtils.LRB_SCRIPT_HASH, OWNER);
-
-  const ret = await Promise.all(
-    [perfectUsdlBuyQuantityP, lrbPriceInFlmP, usdlPriceInFlmP, lrbBalanceP],
-  );
-  const perfectUsdlBuyQuantity = ret[0];
-  const lrbPriceInFlm = ret[1];
-  const usdlPriceInFlm = ret[2];
-  const lrbBalance = ret[3];
-
-  // The estimated max buy quantity is the equivalent value of USDL
-  // of our LRB balance with the slippage tolerance
-  const estMaxBuyQuantity = Math.round(
-    (lrbBalance * lrbPriceInFlm) / (usdlPriceInFlm * (1 + (SLIPPAGE_TOLERANCE / 10000))),
-  );
-
-  const desiredUsdlBuyQuantity = Math.round(perfectUsdlBuyQuantity * SWAP_RATIO);
-  const usdlBuyQuantity = Math.min(desiredUsdlBuyQuantity, estMaxBuyQuantity);
-
-  // The max in quantity is the fair value with a tolerance
-  const maxInQuantity = Math.round(
-    (usdlBuyQuantity * usdlPriceInFlm * (1 + (SLIPPAGE_TOLERANCE / 10000))) / lrbPriceInFlm,
-  );
-
-  logger.debug(`Computed buyUsdl: usdlBuyQuantity=${usdlBuyQuantity} `
-    + `desiredUsdlBuyQuantity=${desiredUsdlBuyQuantity}, `
-    + `perfectUsdlBuyQuantity=${perfectUsdlBuyQuantity}, `
-    + `maxInQuantity=${maxInQuantity}, `
-    + `lrbPriceInFlm=${lrbPriceInFlm}, `
-    + `usdlPriceInFlm=${usdlPriceInFlm}, `
-    + `lrbBalance=${lrbBalance}`);
-
   try {
+    const perfectUsdlBuyQuantityP = ExchangeUtils.getUsdlBuyQuantity();
+    const lrbPriceInFlmP = ExchangeUtils.getLrbPriceInFlm();
+    const usdlPriceInFlmP = ExchangeUtils.getUsdlPriceInFlm();
+    const lrbBalanceP = DapiUtils.getBalance(DapiUtils.LRB_SCRIPT_HASH, OWNER);
+
+    const ret = await Promise.all(
+      [perfectUsdlBuyQuantityP, lrbPriceInFlmP, usdlPriceInFlmP, lrbBalanceP],
+    );
+    const perfectUsdlBuyQuantity = ret[0];
+    const lrbPriceInFlm = ret[1];
+    const usdlPriceInFlm = ret[2];
+    const lrbBalance = ret[3];
+
+    // The estimated max buy quantity is the equivalent value of USDL
+    // of our LRB balance with the slippage tolerance
+    const estMaxBuyQuantity = Math.round(
+      (lrbBalance * lrbPriceInFlm) / (usdlPriceInFlm * (1 + (SLIPPAGE_TOLERANCE / 10000))),
+    );
+
+    const desiredUsdlBuyQuantity = Math.round(perfectUsdlBuyQuantity * SWAP_RATIO);
+    const usdlBuyQuantity = Math.min(desiredUsdlBuyQuantity, estMaxBuyQuantity);
+
+    // The max in quantity is the fair value with a tolerance
+    const maxInQuantity = Math.round(
+      (usdlBuyQuantity * usdlPriceInFlm * (1 + (SLIPPAGE_TOLERANCE / 10000))) / lrbPriceInFlm,
+    );
+
+    logger.debug(`Computed buyUsdl: usdlBuyQuantity=${usdlBuyQuantity} `
+      + `desiredUsdlBuyQuantity=${desiredUsdlBuyQuantity}, `
+      + `perfectUsdlBuyQuantity=${perfectUsdlBuyQuantity}, `
+      + `maxInQuantity=${maxInQuantity}, `
+      + `lrbPriceInFlm=${lrbPriceInFlm}, `
+      + `usdlPriceInFlm=${usdlPriceInFlm}, `
+      + `lrbBalance=${lrbBalance}`);
+
     const transaction = await DapiUtils.createFlamingoSwapLrbForUsdl(
       usdlBuyQuantity,
       maxInQuantity,
       OWNER,
     );
+
     await DapiUtils.checkNetworkFee(transaction);
     await DapiUtils.checkSystemFee(transaction);
+
     if (DRY_RUN) {
       logger.info('Not submitting buyUsdl transaction due to dry run with: '
                  + `usdlBuyQuantity=${usdlBuyQuantity}, `
@@ -206,43 +208,45 @@ async function buyUsdl(notification : NeoNotification) {
  * @param notification a WebSocket notification handler
  */
 async function sellUsdl(notification : NeoNotification) {
-  const perfectUsdlSellQuantityP = ExchangeUtils.getUsdlSellQuantity();
-  const lrbPriceInFlmP = ExchangeUtils.getLrbPriceInFlm();
-  const usdlPriceInFlmP = ExchangeUtils.getUsdlPriceInFlm();
-  const usdlBalanceP = DapiUtils.getBalance(DapiUtils.USDL_SCRIPT_HASH, OWNER);
-
-  const ret = await Promise.all(
-    [perfectUsdlSellQuantityP, lrbPriceInFlmP, usdlPriceInFlmP, usdlBalanceP],
-  );
-  const perfectUsdlSellQuantity = ret[0];
-  const lrbPriceInFlm = ret[1];
-  const usdlPriceInFlm = ret[2];
-  const usdlBalance = ret[3];
-
-  const desiredUsdlSellQuantity = Math.round(perfectUsdlSellQuantity * SWAP_RATIO);
-  const usdlSellQuantity = Math.min(desiredUsdlSellQuantity, usdlBalance);
-
-  // The min out quantity is the fair value with a tolerance
-  const minOutQuantity = Math.round(
-    (usdlSellQuantity * usdlPriceInFlm) / (lrbPriceInFlm * (1 + (SLIPPAGE_TOLERANCE / 10000))),
-  );
-
-  logger.debug(`Computed sellUsdl: usdlSellQuantity=${usdlSellQuantity} `
-    + `desiredUsdlSellQuantity=${desiredUsdlSellQuantity}, `
-    + `perfectUsdlSellQuantity=${perfectUsdlSellQuantity}, `
-    + `minOutQuantity=${minOutQuantity}, `
-    + `lrbPriceInFlm=${lrbPriceInFlm}, `
-    + `usdlPriceInFlm=${usdlPriceInFlm}, `
-    + `usdlBalance=${usdlBalance}`);
-
   try {
+    const perfectUsdlSellQuantityP = ExchangeUtils.getUsdlSellQuantity();
+    const lrbPriceInFlmP = ExchangeUtils.getLrbPriceInFlm();
+    const usdlPriceInFlmP = ExchangeUtils.getUsdlPriceInFlm();
+    const usdlBalanceP = DapiUtils.getBalance(DapiUtils.USDL_SCRIPT_HASH, OWNER);
+
+    const ret = await Promise.all(
+      [perfectUsdlSellQuantityP, lrbPriceInFlmP, usdlPriceInFlmP, usdlBalanceP],
+    );
+    const perfectUsdlSellQuantity = ret[0];
+    const lrbPriceInFlm = ret[1];
+    const usdlPriceInFlm = ret[2];
+    const usdlBalance = ret[3];
+
+    const desiredUsdlSellQuantity = Math.round(perfectUsdlSellQuantity * SWAP_RATIO);
+    const usdlSellQuantity = Math.min(desiredUsdlSellQuantity, usdlBalance);
+
+    // The min out quantity is the fair value with a tolerance
+    const minOutQuantity = Math.round(
+      (usdlSellQuantity * usdlPriceInFlm) / (lrbPriceInFlm * (1 + (SLIPPAGE_TOLERANCE / 10000))),
+    );
+
+    logger.debug(`Computed sellUsdl: usdlSellQuantity=${usdlSellQuantity} `
+      + `desiredUsdlSellQuantity=${desiredUsdlSellQuantity}, `
+      + `perfectUsdlSellQuantity=${perfectUsdlSellQuantity}, `
+      + `minOutQuantity=${minOutQuantity}, `
+      + `lrbPriceInFlm=${lrbPriceInFlm}, `
+      + `usdlPriceInFlm=${usdlPriceInFlm}, `
+      + `usdlBalance=${usdlBalance}`);
+
     const transaction = await DapiUtils.createFlamingoSwapUsdlForLrb(
       usdlSellQuantity,
       minOutQuantity,
       OWNER,
     );
+
     await DapiUtils.checkNetworkFee(transaction);
     await DapiUtils.checkSystemFee(transaction);
+
     if (DRY_RUN) {
       logger.info('Not submitting sellUsdl transaction due to dry run with: '
                  + `usdlSellQuantity=${usdlSellQuantity}, `
@@ -266,107 +270,112 @@ async function sellUsdl(notification : NeoNotification) {
  * @param notification a WebSocket notification handler
  */
 async function rebalance(notification : NeoNotification) {
-  const lrbPriceP = ExchangeUtils.getFlamingoLrbPrice();
-  const usdlPriceP = ExchangeUtils.getFlamingoUsdlPrice();
-  const lrbBalanceP = DapiUtils.getBalance(DapiUtils.LRB_SCRIPT_HASH, OWNER);
-  const usdlBalanceP = DapiUtils.getBalance(DapiUtils.USDL_SCRIPT_HASH, OWNER);
-  const lrbGlobalPriceP = ExchangeUtils.getGlobalLrbPrice();
-  const usdlGlobalPriceP = ExchangeUtils.getGlobalUsdlPrice();
+  try {
+    const lrbPriceP = ExchangeUtils.getFlamingoLrbPrice();
+    const usdlPriceP = ExchangeUtils.getFlamingoUsdlPrice();
+    const lrbBalanceP = DapiUtils.getBalance(DapiUtils.LRB_SCRIPT_HASH, OWNER);
+    const usdlBalanceP = DapiUtils.getBalance(DapiUtils.USDL_SCRIPT_HASH, OWNER);
+    const lrbGlobalPriceP = ExchangeUtils.getGlobalLrbPrice();
+    const usdlGlobalPriceP = ExchangeUtils.getGlobalUsdlPrice();
 
-  const ret = await Promise.all(
-    [lrbPriceP, usdlPriceP, lrbBalanceP, usdlBalanceP, lrbGlobalPriceP, usdlGlobalPriceP],
-  );
-  const lrbPrice = ret[0];
-  const usdlPrice = ret[1];
-  const lrbBalance = ret[2];
-  const usdlBalance = ret[3];
-  const lrbGlobalPrice = ret[4];
-  const usdlGlobalPrice = ret[5];
-
-  const lrbValue = lrbBalance * lrbPrice;
-  const usdlValue = usdlBalance * usdlPrice;
-
-  // Rebalancing is configured to be when the market value
-  // of either token drops below BALANCE_THRESHOLD of
-  // the combined market value of the two tokens.
-  const totalValue = lrbValue + usdlValue;
-  const targetValue = totalValue / 2.0;
-
-  logger.debug(`Entered rebalance with: lrbBalance=${lrbBalance}, `
-               + `usdlBalance=${usdlBalance}, `
-               + `lrbValue=${lrbValue}, `
-               + `usdlValue=${usdlValue}, `
-               + `totalValue=${totalValue}`);
-
-  let transaction = null;
-  let swapQuantity = null;
-  if (lrbValue / totalValue < BALANCE_THRESHOLD) {
-    const swapValue = targetValue - lrbValue;
-    swapQuantity = Math.round(swapValue / usdlPrice);
-    const swapComputation = await DapiUtils.computeAviarySwap(
-      Math.round(lrbGlobalPrice * ExchangeUtils.PRICE_MULT),
-      Math.round(usdlGlobalPrice * ExchangeUtils.PRICE_MULT),
-      true,
-      swapQuantity,
+    const ret = await Promise.all(
+      [lrbPriceP, usdlPriceP, lrbBalanceP, usdlBalanceP, lrbGlobalPriceP, usdlGlobalPriceP],
     );
+    const lrbPrice = ret[0];
+    const usdlPrice = ret[1];
+    const lrbBalance = ret[2];
+    const usdlBalance = ret[3];
+    const lrbGlobalPrice = ret[4];
+    const usdlGlobalPrice = ret[5];
 
-    logger.info(`Estimated spread=${swapComputation.spread} with `
-               + `lrbGlobalPrice=${lrbGlobalPrice}, `
-               + `usdlGlobalPrice=${usdlGlobalPrice}, `
-               + `swapQuantity=${swapQuantity / 10 ** ExchangeUtils.USDL_DECIMALS}`);
+    const lrbValue = lrbBalance * lrbPrice;
+    const usdlValue = usdlBalance * usdlPrice;
 
-    if (swapComputation.spread > MAX_SPREAD) {
-      logger.warn(`Not swapping ${swapQuantity} USDL for LRB because `
-                 + `computed spread=${swapComputation.spread} > MAX_SPREAD=${MAX_SPREAD}`);
+    // Rebalancing is configured to be when the market value
+    // of either token drops below BALANCE_THRESHOLD of
+    // the combined market value of the two tokens.
+    const totalValue = lrbValue + usdlValue;
+    const targetValue = totalValue / 2.0;
+
+    logger.debug(`Entered rebalance with: lrbBalance=${lrbBalance}, `
+                + `usdlBalance=${usdlBalance}, `
+                + `lrbValue=${lrbValue}, `
+                + `usdlValue=${usdlValue}, `
+                + `totalValue=${totalValue}`);
+
+    let transaction = null;
+    let swapQuantity = null;
+    if (lrbValue / totalValue < BALANCE_THRESHOLD) {
+      const swapValue = targetValue - lrbValue;
+      swapQuantity = Math.round(swapValue / usdlPrice);
+      const swapComputation = await DapiUtils.computeAviarySwap(
+        Math.round(lrbGlobalPrice * ExchangeUtils.PRICE_MULT),
+        Math.round(usdlGlobalPrice * ExchangeUtils.PRICE_MULT),
+        true,
+        swapQuantity,
+      );
+
+      logger.info(`Estimated spread=${swapComputation.spread} with `
+                + `lrbGlobalPrice=${lrbGlobalPrice}, `
+                + `usdlGlobalPrice=${usdlGlobalPrice}, `
+                + `swapQuantity=${swapQuantity / 10 ** ExchangeUtils.USDL_DECIMALS}`);
+
+      if (swapComputation.spread > MAX_SPREAD) {
+        logger.warn(`Not swapping ${swapQuantity} USDL for LRB because `
+                  + `computed spread=${swapComputation.spread} > MAX_SPREAD=${MAX_SPREAD}`);
+      } else {
+        transaction = await DapiUtils.createAviarySwapUsdlForLrb(swapQuantity, MAX_SPREAD, OWNER);
+        logger.info(`Created transaction to swap ${swapQuantity} USDL for LRB, MAX_SPREAD=${MAX_SPREAD}`);
+      }
+    } else if (usdlValue / totalValue < BALANCE_THRESHOLD) {
+      const swapValue = targetValue - usdlValue;
+      swapQuantity = Math.round(swapValue / lrbPrice);
+      const swapComputation = await DapiUtils.computeAviarySwap(
+        Math.round(lrbGlobalPrice * ExchangeUtils.PRICE_MULT),
+        Math.round(usdlGlobalPrice * ExchangeUtils.PRICE_MULT),
+        false,
+        swapQuantity,
+      );
+
+      logger.info(`Estimated spread=${swapComputation.spread} with `
+                + `lrbGlobalPrice=${lrbGlobalPrice}, `
+                + `usdlGlobalPrice=${usdlGlobalPrice}, `
+                + `swapQuantity=${swapQuantity / 10 ** ExchangeUtils.LRB_DECIMALS}`);
+
+      if (swapComputation.spread > MAX_SPREAD) {
+        logger.warn(`Not swapping ${swapQuantity} LRB for USDL because `
+                  + `computed spread=${swapComputation.spread} > MAX_SPREAD=${MAX_SPREAD}`);
+      } else {
+        logger.info(`Created transaction to swap ${swapQuantity} LRB for USDL, MAX_SPREAD=${MAX_SPREAD}`);
+        transaction = await DapiUtils.createAviarySwapLrbForUsdl(swapQuantity, MAX_SPREAD, OWNER);
+      }
     } else {
-      transaction = await DapiUtils.createAviarySwapUsdlForLrb(swapQuantity, MAX_SPREAD, OWNER);
-      logger.info(`Created transaction to swap ${swapQuantity} USDL for LRB, MAX_SPREAD=${MAX_SPREAD}`);
+      logger.info('Not rebalancing this cycle');
     }
-  } else if (usdlValue / totalValue < BALANCE_THRESHOLD) {
-    const swapValue = targetValue - usdlValue;
-    swapQuantity = Math.round(swapValue / lrbPrice);
-    const swapComputation = await DapiUtils.computeAviarySwap(
-      Math.round(lrbGlobalPrice * ExchangeUtils.PRICE_MULT),
-      Math.round(usdlGlobalPrice * ExchangeUtils.PRICE_MULT),
-      false,
-      swapQuantity,
-    );
 
-    logger.info(`Estimated spread=${swapComputation.spread} with `
-               + `lrbGlobalPrice=${lrbGlobalPrice}, `
-               + `usdlGlobalPrice=${usdlGlobalPrice}, `
-               + `swapQuantity=${swapQuantity / 10 ** ExchangeUtils.LRB_DECIMALS}`);
+    if (transaction !== null) {
+      await DapiUtils.checkNetworkFee(transaction);
+      await DapiUtils.checkSystemFee(transaction);
 
-    if (swapComputation.spread > MAX_SPREAD) {
-      logger.warn(`Not swapping ${swapQuantity} LRB for USDL because `
-                 + `computed spread=${swapComputation.spread} > MAX_SPREAD=${MAX_SPREAD}`);
-    } else {
-      logger.info(`Created transaction to swap ${swapQuantity} LRB for USDL, MAX_SPREAD=${MAX_SPREAD}`);
-      transaction = await DapiUtils.createAviarySwapLrbForUsdl(swapQuantity, MAX_SPREAD, OWNER);
+      if (DRY_RUN) {
+        logger.info('Not submitting rebalance transaction due to dry run with: '
+                + `swapQuantity=${swapQuantity}, `
+                + `lrbValue=${lrbValue}, `
+                + `usdlValue=${usdlValue}, `
+                + `totalValue=${totalValue}`);
+      } else {
+        logger.info('Submitting rebalance transaction with: '
+                + `swapQuantity=${swapQuantity}, `
+                + `lrbValue=${lrbValue}, `
+                + `usdlValue=${usdlValue}, `
+                + `totalValue=${totalValue}`);
+        const swapComplete = completeAviarySwap(notification);
+        await DapiUtils.performTransfer(transaction, OWNER);
+        await swapComplete;
+      }
     }
-  } else {
-    logger.info('Not rebalancing this cycle');
-  }
-
-  if (transaction !== null) {
-    await DapiUtils.checkNetworkFee(transaction);
-    await DapiUtils.checkSystemFee(transaction);
-    if (DRY_RUN) {
-      logger.info('Not submitting rebalance transaction due to dry run with: '
-               + `swapQuantity=${swapQuantity}, `
-               + `lrbValue=${lrbValue}, `
-               + `usdlValue=${usdlValue}, `
-               + `totalValue=${totalValue}`);
-    } else {
-      logger.info('Submitting rebalance transaction with: '
-               + `swapQuantity=${swapQuantity}, `
-               + `lrbValue=${lrbValue}, `
-               + `usdlValue=${usdlValue}, `
-               + `totalValue=${totalValue}`);
-      const swapComplete = completeAviarySwap(notification);
-      await DapiUtils.performTransfer(transaction, OWNER);
-      await swapComplete;
-    }
+  } catch (e) {
+    logger.error(e, 'Failed to submit rebalance transaction');
   }
 }
 
@@ -382,9 +391,13 @@ async function getBalances() {
 }
 
 async function printBalances() {
-  const lrbPriceP = ExchangeUtils.getGlobalLrbPrice();
-  const usdlPriceP = ExchangeUtils.getGlobalUsdlPrice();
-  return Promise.all([getBalances(), lrbPriceP, usdlPriceP]).then((ret) => {
+  try {
+    const lrbPriceP = ExchangeUtils.getGlobalLrbPrice();
+    const usdlPriceP = ExchangeUtils.getGlobalUsdlPrice();
+    const balancesP = getBalances();
+
+    const ret = await Promise.all([balancesP, lrbPriceP, usdlPriceP]);
+
     const balances = ret[0];
     const lrbBalance = balances[0];
     const usdlBalance = balances[1];
@@ -408,7 +421,9 @@ async function printBalances() {
     logger.info(`USDL Market Value: ${usdlValue.toLocaleString(undefined, { maximumFractionDigits: 2, minimumFractionDigits: 2 })}`);
     logger.info(`Total Market Value: ${totalValue.toLocaleString(undefined, { maximumFractionDigits: 2, minimumFractionDigits: 2 })}`);
     logger.info('');
-  });
+  } catch (error) {
+    logger.error(error, 'Failed to get balances')
+  }
 }
 
 function sleep(millis: number) {
