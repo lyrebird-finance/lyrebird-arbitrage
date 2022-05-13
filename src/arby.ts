@@ -1,5 +1,5 @@
 /* eslint-disable no-await-in-loop */
-import { wallet } from '@cityofzion/neon-core';
+import { CONST, wallet } from '@cityofzion/neon-core';
 import { RawData } from 'ws';
 import { config } from './config';
 import { logger } from './utils/loggingUtils';
@@ -382,11 +382,18 @@ async function rebalance(notification : NeoNotification) {
 async function getBalances() {
   const lrbBalanceP = DapiUtils.getBalance(DapiUtils.LRB_SCRIPT_HASH, OWNER);
   const usdlBalanceP = DapiUtils.getBalance(DapiUtils.USDL_SCRIPT_HASH, OWNER);
+  const gasBalanceP = DapiUtils.getBalance(CONST.NATIVE_CONTRACT_HASH.GasToken, OWNER);
+  const gasDecimals = 8;
 
-  return Promise.all([lrbBalanceP, usdlBalanceP]).then((ret) => {
+  return Promise.all([lrbBalanceP, usdlBalanceP, gasBalanceP]).then((ret) => {
     const lrbMultiplier = 10 ** ExchangeUtils.LRB_DECIMALS;
     const usdlMultiplier = 10 ** ExchangeUtils.USDL_DECIMALS;
-    return [ret[0] / lrbMultiplier, ret[1] / usdlMultiplier];
+    const gasMultiplier = 10 ** gasDecimals;
+    return [
+      ret[0] / lrbMultiplier, 
+      ret[1] / usdlMultiplier,
+      ret[2] / gasMultiplier
+    ];
   });
 }
 
@@ -401,25 +408,38 @@ async function printBalances() {
     const balances = ret[0];
     const lrbBalance = balances[0];
     const usdlBalance = balances[1];
+    const gasBalance = balances[2];
     const lrbPrice = ret[1];
     const usdlPrice = ret[2];
     const lrbValue = lrbPrice * lrbBalance;
     const usdlValue = usdlPrice * usdlBalance;
     const totalValue = lrbValue + usdlValue;
 
+    const formatNumber = (number: number, fractionDigits: number = 2): string => {
+      const defaultRuntimeLocale = undefined;
+      return number.toLocaleString(
+        defaultRuntimeLocale, 
+        { 
+          maximumFractionDigits: fractionDigits, 
+          minimumFractionDigits: fractionDigits
+        }
+      );
+    };
+
     logger.info('');
     logger.info('------Balances-------');
-    logger.info(`LRB Balance: ${lrbBalance.toLocaleString(undefined, { maximumFractionDigits: 2, minimumFractionDigits: 2 })}`);
-    logger.info(`USDL Balance: ${usdlBalance.toLocaleString(undefined, { maximumFractionDigits: 2, minimumFractionDigits: 2 })}`);
+    logger.info(`LRB Balance: ${formatNumber(lrbBalance)}`);
+    logger.info(`USDL Balance: ${formatNumber(usdlBalance)}`);
+    logger.info(`GAS Balance: ${formatNumber(gasBalance)}`);
     logger.info('');
     logger.info('-------Prices--------');
-    logger.info(`LRB Global Price: ${lrbPrice.toLocaleString(undefined, { maximumFractionDigits: 4, minimumFractionDigits: 4 })}`);
-    logger.info(`USDL Global Price: ${usdlPrice.toLocaleString(undefined, { maximumFractionDigits: 4, minimumFractionDigits: 4 })}`);
+    logger.info(`LRB Global Price: ${formatNumber(lrbPrice, 4)}`);
+    logger.info(`USDL Global Price: ${formatNumber(usdlPrice, 4)}`);
     logger.info('');
     logger.info('--USD Market Values--');
-    logger.info(`LRB Market Value: ${lrbValue.toLocaleString(undefined, { maximumFractionDigits: 2, minimumFractionDigits: 2 })}`);
-    logger.info(`USDL Market Value: ${usdlValue.toLocaleString(undefined, { maximumFractionDigits: 2, minimumFractionDigits: 2 })}`);
-    logger.info(`Total Market Value: ${totalValue.toLocaleString(undefined, { maximumFractionDigits: 2, minimumFractionDigits: 2 })}`);
+    logger.info(`LRB Market Value: ${formatNumber(lrbValue)}`);
+    logger.info(`USDL Market Value: ${formatNumber(usdlValue)}`);
+    logger.info(`Total Market Value: ${formatNumber(totalValue)}`);
     logger.info('');
   } catch (error) {
     logger.error(error, 'Failed to get balances')
