@@ -174,6 +174,18 @@ const config = convict({
     arg: 'dryRun',
     env: 'DRY_RUN',
   },
+  withSentry: {
+    format: Boolean,
+    default: false,
+    arg: 'withSentry',
+    env: 'WITH_SENTRY'
+  },
+  sentryDsn: {
+    format: String,
+    default: '',
+    arg: 'sentryDsn',
+    env: 'SENTRY_DSN'
+  }
 });
 
 const env = config.get('env');

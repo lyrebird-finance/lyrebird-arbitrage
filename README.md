@@ -36,3 +36,9 @@ As of May 9, 2022, arby implements arbitrage of USDL between Flamingo and Lyrebi
 | `SLEEP_MILLIS` | The cycle duration expressed in milliseconds. arby will wait this duration between each cycle. It is meaningless to set this duration to less than `15000`, as Flamingo prices can't change between blocks which are generated every 15 seconds. |
 | `AVIARY_WAIT_MILLIS` | The maximum amount of time to wait for an Aviary swap in milliseconds. If the Oracle hasn't responded by this time, arby will continue to the next cycle. |
 | `DRY_RUN` | If set to true, output the computations without actually performing swaps. Useful for testing and tuning parameters. |
+
+### Sentry Parameters ###
+| Option | Description |
+| --- | --- |
+| `WITH_SENTRY` | Enable [Sentry](https://sentry.io/welcome) to monitor the bot, with a focus on warning, error, fatal, and critical log reports |
+| `SENTRY_DSN` | Sentry [Data Source Name](https://docs.sentry.io/product/sentry-basics/dsn-explainer) |
